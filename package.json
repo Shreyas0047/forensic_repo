@@ -1,0 +1,14 @@
+{
+  "name": "ai-powered-cybercrime-digital-forensics-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "client": "cd client && npm run dev",
+    "server": "cd server && nodemon server.js",
+    "ai": "cd ai-service && python app.py",
+    "dev": "concurrently \"npm run server\" \"npm run client\" \"npm run ai\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

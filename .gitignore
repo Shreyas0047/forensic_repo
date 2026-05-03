@@ -1,0 +1,42 @@
+# dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# env files
+.env
+.env.*
+client/.env
+client/.env.*
+server/.env
+server/.env.*
+ai-service/.env
+ai-service/.env.*
+
+# build output
+dist/
+build/
+client/dist/
+server/blockchain/build/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# uploads and local data
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
