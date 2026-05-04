@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const fs = require("fs");
+const path = require("path");
 const authRoutes = require("./routes/authRoutes");
 const caseRoutes = require("./routes/caseRoutes");
 const evidenceRoutes = require("./routes/evidenceRoutes");
@@ -16,11 +18,13 @@ const { authenticateUser } = require("./middleware/authMiddleware");
 const { ensureUploadsDirectory } = require("./utils/storagePaths");
 
 const app = express();
+const clientBuildPath = path.resolve(__dirname, "..", "client", "dist");
+const hasClientBuild = fs.existsSync(clientBuildPath);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: process.env.CLIENT_URL || true,
     credentials: true,
   }),
 );
@@ -46,6 +50,14 @@ app.use("/api/intelligence", authenticateUser, intelligenceRoutes);
 app.use("/api/blockchain", authenticateUser, blockchainRoutes);
 app.use("/api/audit", authenticateUser, auditRoutes);
 app.use("/api/darkweb", authenticateUser, darkwebRoutes);
+
+if (hasClientBuild) {
+  app.use(express.static(clientBuildPath));
+
+  app.get(/^\/(?!api|uploads).*/, (req, res) => {
+    res.sendFile(path.join(clientBuildPath, "index.html"));
+  });
+}
 
 app.use((req, res) => {
   res.status(404).json({

@@ -6,7 +6,15 @@ import { useAuth } from "./AuthContext";
 const AlertContext = createContext(null);
 
 function getSocketUrl() {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    return window.location.origin;
+  }
+
+  if (baseUrl.startsWith("/")) {
+    return window.location.origin;
+  }
+
   return baseUrl.replace(/\/api\/?$/, "");
 }
 
