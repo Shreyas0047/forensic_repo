@@ -10,6 +10,7 @@ import Modal from "../components/ui/Modal";
 import { caseApi } from "../services/caseService";
 import { evidenceApi } from "../services/evidenceService";
 import { analysisApi } from "../services/analysisService";
+import { useAuth, ROLES } from "../context/AuthContext";
 
 export default function CaseDetailsPage() {
   const { caseId } = useParams();
@@ -19,6 +20,9 @@ export default function CaseDetailsPage() {
   const [reports, setReports] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
   const [auditOpen, setAuditOpen] = useState(false);
+  const { hasRole } = useAuth();
+  const canUploadEvidence = hasRole(ROLES.ADMIN, ROLES.INVESTIGATOR);
+  const canViewAnalysis = hasRole(ROLES.ADMIN, ROLES.INVESTIGATOR, ROLES.ANALYST);
 
   useEffect(() => {
     Promise.all([
@@ -57,20 +61,25 @@ export default function CaseDetailsPage() {
       title={caseData.case.title}
       subtitle="Review evidence, analysis, blockchain status, and timeline context for the current investigation."
       actions={[
-        <Button key="upload" variant="secondary" onClick={() => setAuditOpen(true)}>
-          Upload evidence
-        </Button>,
+        ...(canUploadEvidence
+          ? [
+              <Button key="upload" variant="secondary" onClick={() => setAuditOpen(true)}>
+                Upload evidence
+              </Button>,
+            ]
+          : []),
       ]}
     >
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card>
+        <Card accent="from-indigo-500 to-blue-500">
           <div className="flex flex-wrap items-center gap-3">
             <Badge tone={caseData.case.status}>{caseData.case.status}</Badge>
             <Badge tone={caseData.case.priority}>{caseData.case.priority}</Badge>
+            <Badge tone={caseData.case.createdBy?.role || "viewer"}>{caseData.case.createdBy?.role || "VIEWER"}</Badge>
           </div>
           <p className="mt-5 text-sm leading-7 text-slate-600">{caseData.case.description}</p>
         </Card>
-        <Card>
+        <Card accent="from-amber-500 to-orange-500">
           <h3 className="text-lg font-semibold text-slate-900">Blockchain readiness</h3>
           <p className="mt-4 text-4xl font-semibold text-slate-900">{blockchainReady}</p>
           <p className="mt-2 text-sm text-slate-500">Analysis reports ready for integrity verification.</p>
@@ -78,7 +87,7 @@ export default function CaseDetailsPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card>
+        <Card accent="from-emerald-500 to-cyan-500">
           <h3 className="text-lg font-semibold text-slate-900">Evidence List</h3>
           <div className="mt-5">
             <Table
@@ -90,7 +99,7 @@ export default function CaseDetailsPage() {
                   <td className="px-5 py-4 text-sm text-slate-600">{item.fileType}</td>
                   <td className="px-5 py-4 text-xs text-slate-500">{item.hash.slice(0, 16)}...</td>
                   <td className="px-5 py-4">
-                    <Link to={`/evidence/${item._id}`} className="text-sm font-medium text-sky-700">
+                    <Link to={`/evidence/${item._id}`} className="text-sm font-medium text-blue-700 transition hover:text-purple-700">
                       View
                     </Link>
                   </td>
@@ -99,7 +108,7 @@ export default function CaseDetailsPage() {
             />
           </div>
         </Card>
-        <Card>
+        <Card accent="from-violet-500 to-fuchsia-500">
           <h3 className="text-lg font-semibold text-slate-900">Similar Cases</h3>
           <div className="mt-5 space-y-3">
             {similarCases.map((item) => (
@@ -113,19 +122,26 @@ export default function CaseDetailsPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card>
+        <Card accent="from-rose-500 to-orange-500">
           <h3 className="text-lg font-semibold text-slate-900">Analysis Reports</h3>
-          <div className="mt-5 space-y-4">
-            {reports.map((report) => (
-              <div key={report._id} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-slate-900">{report.evidenceId?.fileName || "Evidence"}</p>
-                  <Badge tone={report.riskScore > 70 ? "high" : report.riskScore > 40 ? "medium" : "low"}>{report.riskScore}</Badge>
+          {canViewAnalysis ? (
+            <div className="mt-5 space-y-4">
+              {reports.map((report) => (
+                <div key={report._id} className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-slate-900">{report.evidenceId?.fileName || "Evidence"}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={report.severity || (report.riskScore > 70 ? "high" : report.riskScore > 40 ? "medium" : "low")}>{report.finalRiskScore || report.riskScore}</Badge>
+                      <Badge tone={report.threatType ? "analyst" : "viewer"}>{report.threatType || "Suspicious Activity"}</Badge>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-500">{report.explanation}</p>
                 </div>
-                <p className="mt-2 text-sm text-slate-500">{report.explanation}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 text-sm text-slate-500">Analysis reports are restricted to analyst, investigator, and admin roles.</p>
+          )}
         </Card>
         <TimelineList items={timeline} />
       </section>

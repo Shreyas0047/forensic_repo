@@ -6,11 +6,15 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import RiskMeter from "../components/charts/RiskMeter";
 import { analysisApi } from "../services/analysisService";
+import { useAuth, ROLES } from "../context/AuthContext";
 
 export default function AnalysisPage({ mode = "analysis" }) {
   const { evidenceId } = useParams();
   const [reports, setReports] = useState([]);
   const [blockchain, setBlockchain] = useState(null);
+  const { hasRole } = useAuth();
+  const canRunAnalysis = hasRole(ROLES.ADMIN, ROLES.INVESTIGATOR, ROLES.ANALYST);
+  const canStoreBlockchain = hasRole(ROLES.ADMIN, ROLES.INVESTIGATOR);
 
   useEffect(() => {
     if (!evidenceId) return;
@@ -26,23 +30,36 @@ export default function AnalysisPage({ mode = "analysis" }) {
       actions={
         evidenceId
           ? [
-              <Button key="run" onClick={() => analysisApi.analyze(evidenceId).then((data) => setReports([data, ...reports]))}>
-                Run analysis
-              </Button>,
-              <Button key="store" variant="secondary" onClick={() => analysisApi.storeBlockchain(evidenceId).then(setBlockchain)}>
-                Store on blockchain
-              </Button>,
+              ...(canRunAnalysis
+                ? [
+                    <Button key="run" onClick={() => analysisApi.analyze(evidenceId).then((data) => setReports([data, ...reports]))}>
+                      Run analysis
+                    </Button>,
+                  ]
+                : []),
+              ...(canStoreBlockchain
+                ? [
+                    <Button key="store" variant="secondary" onClick={() => analysisApi.storeBlockchain(evidenceId).then(setBlockchain)}>
+                      Store on blockchain
+                    </Button>,
+                  ]
+                : []),
             ]
           : []
       }
     >
       {primary ? (
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <Card>
-            <RiskMeter value={primary.riskScore} />
+          <Card accent="from-purple-500 to-indigo-500">
+            <RiskMeter value={primary.finalRiskScore || primary.riskScore} />
           </Card>
-          <Card>
+          <Card accent="from-rose-500 to-orange-500">
             <h3 className="text-lg font-semibold text-slate-900">Threats Detected</h3>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge tone={primary.severity || "medium"}>{primary.severity || "medium"}</Badge>
+              <Badge tone="analyst">{primary.threatType || "Suspicious Activity"}</Badge>
+              {primary.confidenceScore ? <Badge tone="investigator">{Math.round(primary.confidenceScore * 100)}% confidence</Badge> : null}
+            </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {(primary.threatsDetected || []).map((item) => (
                 <Badge key={item} tone="high">
@@ -55,8 +72,12 @@ export default function AnalysisPage({ mode = "analysis" }) {
           </Card>
         </div>
       ) : (
-        <Card>
-          <p className="text-sm text-slate-500">Open this page from an evidence item to view or trigger analysis.</p>
+        <Card accent="from-purple-500 to-pink-500">
+          <p className="text-sm text-slate-500">
+            {canRunAnalysis
+              ? "Open this page from an evidence item to view or trigger analysis."
+              : "AI analysis is restricted to analyst, investigator, and admin roles."}
+          </p>
         </Card>
       )}
     </PageShell>

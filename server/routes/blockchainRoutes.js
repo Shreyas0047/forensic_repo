@@ -1,7 +1,7 @@
 const express = require("express");
 const { param } = require("express-validator");
 const { storeEvidence, verifyEvidence, getProof } = require("../controllers/blockchainController");
-const { authorizeRoles } = require("../middleware/roleMiddleware");
+const { requireRole } = require("../middleware/roleMiddleware");
 const { handleValidationErrors } = require("../middleware/validationMiddleware");
 
 const router = express.Router();
@@ -12,7 +12,7 @@ const evidenceIdValidation = [
 
 router.post(
   "/store/:evidenceId",
-  authorizeRoles("Admin", "Investigator"),
+  requireRole("ADMIN", "INVESTIGATOR"),
   evidenceIdValidation,
   handleValidationErrors,
   storeEvidence,
@@ -20,7 +20,7 @@ router.post(
 
 router.get(
   "/verify/:evidenceId",
-  authorizeRoles("Admin", "Investigator"),
+  requireRole("ADMIN", "INVESTIGATOR"),
   evidenceIdValidation,
   handleValidationErrors,
   verifyEvidence,
@@ -28,7 +28,7 @@ router.get(
 
 router.get(
   "/proof/:evidenceId",
-  authorizeRoles("Admin", "Investigator"),
+  requireRole("ADMIN", "INVESTIGATOR", "ANALYST"),
   evidenceIdValidation,
   handleValidationErrors,
   getProof,

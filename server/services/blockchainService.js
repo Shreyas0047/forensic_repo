@@ -28,8 +28,8 @@ async function getAccessibleEvidence(evidenceId, user) {
 
   const actorId = String(user.userId || user._id);
   const hasAccess =
-    user.role === "Admin" ||
-    user.role === "Investigator" ||
+    user.role === "ADMIN" ||
+    user.role === "INVESTIGATOR" ||
     String(caseRecord.createdBy) === actorId ||
     String(caseRecord.assignedTo) === actorId;
 

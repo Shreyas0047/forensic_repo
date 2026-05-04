@@ -10,7 +10,7 @@ const {
   verifyEvidence,
   deleteEvidence,
 } = require("../controllers/evidenceController");
-const { authorizeRoles } = require("../middleware/roleMiddleware");
+const { requireRole } = require("../middleware/roleMiddleware");
 const { handleValidationErrors } = require("../middleware/validationMiddleware");
 const AppError = require("../utils/AppError");
 const { ensureUploadsDirectory } = require("../utils/storagePaths");
@@ -58,10 +58,10 @@ const evidenceIdValidation = [
   param("id").isMongoId().withMessage("id must be a valid MongoDB ObjectId."),
 ];
 
-router.post("/upload", upload.single("file"), uploadValidation, handleValidationErrors, uploadEvidence);
-router.get("/case/:caseId", caseIdValidation, handleValidationErrors, getEvidenceByCase);
-router.get("/:id", evidenceIdValidation, handleValidationErrors, getSingleEvidence);
-router.post("/:id/verify", evidenceIdValidation, handleValidationErrors, verifyEvidence);
-router.delete("/:id", authorizeRoles("Admin"), evidenceIdValidation, handleValidationErrors, deleteEvidence);
+router.post("/upload", requireRole("ADMIN", "INVESTIGATOR"), upload.single("file"), uploadValidation, handleValidationErrors, uploadEvidence);
+router.get("/case/:caseId", requireRole("ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"), caseIdValidation, handleValidationErrors, getEvidenceByCase);
+router.get("/:id", requireRole("ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"), evidenceIdValidation, handleValidationErrors, getSingleEvidence);
+router.post("/:id/verify", requireRole("ADMIN", "INVESTIGATOR"), evidenceIdValidation, handleValidationErrors, verifyEvidence);
+router.delete("/:id", requireRole("ADMIN"), evidenceIdValidation, handleValidationErrors, deleteEvidence);
 
 module.exports = router;

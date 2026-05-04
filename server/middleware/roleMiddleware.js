@@ -1,6 +1,6 @@
 const AppError = require("../utils/AppError");
 
-function authorizeRoles(...roles) {
+function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) {
       return next(new AppError("Authentication required before authorization.", 401));
@@ -15,5 +15,6 @@ function authorizeRoles(...roles) {
 }
 
 module.exports = {
-  authorizeRoles,
+  requireRole,
+  authorizeRoles: requireRole,
 };

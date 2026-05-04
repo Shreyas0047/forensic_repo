@@ -73,7 +73,7 @@ async function getAccessibleCase(caseId, user) {
 
   const actorId = String(user.userId || user._id);
   const isAuthorized =
-    user.role === "Admin" ||
+    user.role === "ADMIN" ||
     String(caseRecord.createdBy) === actorId ||
     String(caseRecord.assignedTo) === actorId;
 

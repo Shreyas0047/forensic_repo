@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ROLES } from "./context/AuthContext";
 import AppLayout from "./layouts/AppLayout";
 
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -36,9 +37,30 @@ export default function App() {
             <Route path="cases/:caseId" element={<CaseDetailsPage />} />
             <Route path="evidence" element={<EvidenceViewerPage />} />
             <Route path="evidence/:evidenceId" element={<EvidenceViewerPage />} />
-            <Route path="analysis" element={<AnalysisPage />} />
-            <Route path="analysis/:evidenceId" element={<AnalysisPage />} />
-            <Route path="blockchain" element={<AnalysisPage mode="blockchain" />} />
+            <Route
+              path="analysis"
+              element={
+                <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ANALYST, ROLES.INVESTIGATOR]}>
+                  <AnalysisPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="analysis/:evidenceId"
+              element={
+                <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ANALYST, ROLES.INVESTIGATOR]}>
+                  <AnalysisPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="blockchain"
+              element={
+                <ProtectedRoute roles={[ROLES.ADMIN, ROLES.INVESTIGATOR, ROLES.ANALYST]}>
+                  <AnalysisPage mode="blockchain" />
+                </ProtectedRoute>
+              }
+            />
             <Route path="audit" element={<AuditTimelinePage />} />
             <Route path="audit/:caseId" element={<AuditTimelinePage />} />
           </Route>

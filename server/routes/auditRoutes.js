@@ -6,6 +6,7 @@ const {
   getUserActivity,
   exportCaseAudit,
 } = require("../controllers/auditController");
+const { requireRole } = require("../middleware/roleMiddleware");
 const { handleValidationErrors } = require("../middleware/validationMiddleware");
 
 const router = express.Router();
@@ -27,9 +28,9 @@ const exportValidation = [
   query("format").optional().isIn(["json", "csv"]).withMessage("format must be json or csv."),
 ];
 
-router.get("/evidence/:evidenceId", evidenceIdValidation, handleValidationErrors, getEvidenceAudit);
-router.get("/case/:caseId", caseIdValidation, handleValidationErrors, getCaseAudit);
-router.get("/user/:userId", userIdValidation, handleValidationErrors, getUserActivity);
-router.get("/export/:caseId", exportValidation, handleValidationErrors, exportCaseAudit);
+router.get("/evidence/:evidenceId", requireRole("ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"), evidenceIdValidation, handleValidationErrors, getEvidenceAudit);
+router.get("/case/:caseId", requireRole("ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"), caseIdValidation, handleValidationErrors, getCaseAudit);
+router.get("/user/:userId", requireRole("ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"), userIdValidation, handleValidationErrors, getUserActivity);
+router.get("/export/:caseId", requireRole("ADMIN", "INVESTIGATOR"), exportValidation, handleValidationErrors, exportCaseAudit);
 
 module.exports = router;

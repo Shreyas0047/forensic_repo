@@ -9,7 +9,7 @@ import Button from "../components/ui/Button";
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "Investigator" });
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
 
   const handleSubmit = async (event) => {
@@ -26,18 +26,14 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-xl">
-        <Card className="p-8 lg:p-10">
+        <Card accent="from-blue-500 to-purple-500" className="p-8 lg:p-10">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-600">Onboarding</p>
           <h2 className="mt-3 text-3xl font-semibold text-slate-900">Create a forensics account</h2>
+          <p className="mt-3 text-sm text-slate-500">New accounts are created with the `VIEWER` role by default. Elevated roles are assigned by administrators.</p>
           <form onSubmit={handleSubmit} className="mt-8 grid gap-4 md:grid-cols-2">
             <Input placeholder="Full name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
             <Input type="email" placeholder="Email address" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-            <Input type="password" placeholder="Password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
-            <select className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
-              <option value="Investigator">Investigator</option>
-              <option value="Analyst">Analyst</option>
-              <option value="Admin">Admin</option>
-            </select>
+            <Input type="password" placeholder="Password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} className="md:col-span-1" />
             {error ? <p className="md:col-span-2 text-sm text-rose-600">{error}</p> : null}
             <Button type="submit" className="md:col-span-2 py-3">
               Create account

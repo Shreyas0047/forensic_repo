@@ -5,6 +5,7 @@ const {
   getAnalysisReport,
   getCaseAnalysisReports,
 } = require("../controllers/analysisController");
+const { requireRole } = require("../middleware/roleMiddleware");
 const { handleValidationErrors } = require("../middleware/validationMiddleware");
 
 const router = express.Router();
@@ -17,8 +18,8 @@ const caseIdValidation = [
   param("caseId").isMongoId().withMessage("caseId must be a valid MongoDB ObjectId."),
 ];
 
-router.get("/case/:caseId", caseIdValidation, handleValidationErrors, getCaseAnalysisReports);
-router.post("/:evidenceId", evidenceIdValidation, handleValidationErrors, analyzeEvidence);
-router.get("/:evidenceId", evidenceIdValidation, handleValidationErrors, getAnalysisReport);
+router.get("/case/:caseId", requireRole("ADMIN", "INVESTIGATOR", "ANALYST"), caseIdValidation, handleValidationErrors, getCaseAnalysisReports);
+router.post("/:evidenceId", requireRole("ADMIN", "INVESTIGATOR", "ANALYST"), evidenceIdValidation, handleValidationErrors, analyzeEvidence);
+router.get("/:evidenceId", requireRole("ADMIN", "INVESTIGATOR", "ANALYST"), evidenceIdValidation, handleValidationErrors, getAnalysisReport);
 
 module.exports = router;

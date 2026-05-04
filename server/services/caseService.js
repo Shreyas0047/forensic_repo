@@ -21,7 +21,7 @@ function ensureObjectId(value, fieldName) {
 }
 
 function buildCaseScope(user) {
-  if (user.role === "Admin") {
+  if (user.role === "ADMIN") {
     return { isDeleted: false };
   }
 
@@ -53,7 +53,7 @@ async function getCaseOrThrow(caseId) {
 }
 
 function canAccessCase(user, caseRecord) {
-  if (user.role === "Admin") {
+  if (user.role === "ADMIN") {
     return true;
   }
 
@@ -178,7 +178,7 @@ async function updateCase(caseId, payload, user) {
   const caseRecord = await getCaseOrThrow(caseId);
   const actorId = String(user.userId || user._id);
 
-  if (user.role !== "Admin" && String(caseRecord.createdBy) !== actorId) {
+  if (user.role !== "ADMIN" && String(caseRecord.createdBy) !== actorId) {
     throw new AppError("Forbidden: only the case creator or Admin can update this case.", 403);
   }
 
@@ -206,7 +206,7 @@ async function updateCaseStatus(caseId, status, user) {
   const caseRecord = await getCaseOrThrow(caseId);
   const actorId = String(user.userId || user._id);
 
-  if (user.role !== "Admin" && String(caseRecord.assignedTo) !== actorId) {
+  if (user.role !== "ADMIN" && String(caseRecord.assignedTo) !== actorId) {
     throw new AppError("Forbidden: only the assigned investigator or Admin can change case status.", 403);
   }
 
@@ -236,8 +236,8 @@ async function assignCase(caseId, assignedTo, user) {
   ensureObjectId(assignedTo, "assignedTo");
 
   const assignee = await User.findById(assignedTo);
-  if (!assignee || assignee.role !== "Investigator") {
-    throw new AppError("Assigned user must be a valid Investigator.", 400);
+  if (!assignee || assignee.role !== "INVESTIGATOR") {
+    throw new AppError("Assigned user must be a valid INVESTIGATOR.", 400);
   }
 
   const caseRecord = await getCaseOrThrow(caseId);

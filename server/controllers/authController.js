@@ -28,8 +28,10 @@ async function register(req, res, next) {
       name,
       email,
       password,
-      role: "Investigator",
+      role: "VIEWER",
     });
+
+    const token = generateToken(user);
 
     await EventLog.create({
       eventType: "USER_REGISTERED",
@@ -46,6 +48,7 @@ async function register(req, res, next) {
       success: true,
       message: "User registered successfully.",
       data: {
+        token,
         user: buildSafeUser(user),
       },
     });

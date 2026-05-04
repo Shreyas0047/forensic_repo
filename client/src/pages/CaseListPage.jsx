@@ -6,10 +6,12 @@ import Table from "../components/ui/Table";
 import Badge from "../components/ui/Badge";
 import Input from "../components/ui/Input";
 import { caseApi } from "../services/caseService";
+import { useAuth, ROLES } from "../context/AuthContext";
 
 export default function CaseListPage() {
   const [data, setData] = useState({ cases: [] });
   const [filters, setFilters] = useState({ status: "", priority: "" });
+  const { hasRole } = useAuth();
 
   useEffect(() => {
     const query = {};
@@ -20,7 +22,7 @@ export default function CaseListPage() {
 
   return (
     <PageShell title="Case Management" subtitle="Review cases by status, priority, and ownership to keep the investigation pipeline moving.">
-      <Card>
+      <Card accent="from-indigo-500 to-blue-500">
         <div className="grid gap-4 md:grid-cols-3">
           <select className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm" value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
             <option value="">All statuses</option>
@@ -51,9 +53,10 @@ export default function CaseListPage() {
             </td>
             <td className="px-5 py-4">{item.assignedTo?.name || "Unassigned"}</td>
             <td className="px-5 py-4">
-              <Link to={`/cases/${item._id}`} className="font-medium text-sky-700">
+              <Link to={`/cases/${item._id}`} className="font-medium text-blue-700 transition hover:text-purple-700">
                 View case
               </Link>
+              {!hasRole(ROLES.ADMIN) ? <span className="ml-3 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">{hasRole(ROLES.VIEWER) ? "Read only" : ""}</span> : null}
             </td>
           </tr>
         )}

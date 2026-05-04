@@ -28,8 +28,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["Admin", "Investigator", "Analyst"],
-      default: "Investigator",
+      enum: ["ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"],
+      default: "VIEWER",
       index: true,
     },
     isVerified: {

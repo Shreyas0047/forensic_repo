@@ -31,7 +31,7 @@ async function getAccessibleEvidence(evidenceId, user) {
 
   const actorId = String(user.userId || user._id);
   const hasAccess =
-    user.role === "Admin" ||
+    user.role === "ADMIN" ||
     String(caseRecord.createdBy) === actorId ||
     String(caseRecord.assignedTo) === actorId;
 
@@ -52,7 +52,7 @@ async function getAccessibleCase(caseId, user) {
 
   const actorId = String(user.userId || user._id);
   const hasAccess =
-    user.role === "Admin" ||
+    user.role === "ADMIN" ||
     String(caseRecord.createdBy) === actorId ||
     String(caseRecord.assignedTo) === actorId;
 

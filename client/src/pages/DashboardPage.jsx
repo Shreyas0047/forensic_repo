@@ -10,10 +10,12 @@ import CaseActivityChart from "../components/charts/CaseActivityChart";
 import { dashboardApi } from "../services/dashboardService";
 import { useAlerts } from "../context/AlertContext";
 import { alertApi } from "../services/alertService";
+import { useAuth, ROLES } from "../context/AuthContext";
 
 export default function DashboardPage() {
   const [overview, setOverview] = useState({ cases: [], pagination: { total: 0 } });
   const { alerts = [] } = useAlerts() || {};
+  const { hasRole } = useAuth();
 
   useEffect(() => {
     dashboardApi.getOverview().then(setOverview).catch(() => setOverview({ cases: [], pagination: { total: 0 } }));
@@ -56,14 +58,14 @@ export default function DashboardPage() {
   return (
     <PageShell title="Investigation Dashboard" subtitle="Monitor active investigations, evidence pressure, and analysis throughput across your forensic workload.">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          ["Total cases", metrics.totalCases],
-          ["Active cases", metrics.activeCases],
-          ["High-risk alerts", metrics.alerts],
-          ["Assigned cases", metrics.assigned],
-        ].map(([label, value]) => (
+        {[ 
+          ["Total cases", metrics.totalCases, "from-blue-500 to-cyan-400"],
+          ["Active cases", metrics.activeCases, "from-indigo-500 to-blue-500"],
+          ["High-risk alerts", metrics.alerts, "from-rose-500 to-orange-500"],
+          ["Assigned cases", metrics.assigned, "from-emerald-500 to-teal-400"],
+        ].map(([label, value, accent]) => (
           <ScrollReveal key={label}>
-            <Card hover>
+            <Card hover accent={accent}>
               <p className="text-sm text-slate-500">{label}</p>
               <p className="mt-4 text-3xl font-semibold text-slate-900">
                 <AnimatedNumber value={value} />
@@ -82,22 +84,24 @@ export default function DashboardPage() {
       </section>
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <ScrollReveal>
-          <Card>
+          <Card accent="from-rose-500 to-orange-400">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Live Alert Panel</h3>
                 <p className="mt-1 text-sm text-slate-500">Incoming dark web and high-risk intelligence.</p>
               </div>
-              <Button variant="secondary" onClick={() => alertApi.analyzeDarkweb()}>
-                Scan dark web
-              </Button>
+              {hasRole(ROLES.ADMIN, ROLES.INVESTIGATOR) ? (
+                <Button variant="secondary" onClick={() => alertApi.analyzeDarkweb()}>
+                  Scan dark web
+                </Button>
+              ) : null}
             </div>
             <div className="mt-5 space-y-3">
               {liveAlerts.map((alert) => (
-                <div key={alert._id || alert.alertId || alert.createdAt} className="rounded-2xl border border-white/50 bg-white/55 p-4 shadow-md backdrop-blur-xl transition duration-300 hover:bg-white/80">
+                <div key={alert._id || alert.alertId || alert.createdAt} className="rounded-2xl border border-white/50 bg-white/60 p-4 shadow-md backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:bg-white/85">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone={alert.severity}>{alert.severity}</Badge>
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{alert.threatType || "Suspicious Activity"}</span>
+                    <span className="rounded-full bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{alert.threatType || "Suspicious Activity"}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium text-slate-900">{alert.message}</p>
                 </div>
@@ -106,6 +110,28 @@ export default function DashboardPage() {
             </div>
           </Card>
         </ScrollReveal>
+        {hasRole(ROLES.ADMIN, ROLES.ANALYST) ? (
+          <ScrollReveal delay={0.06}>
+            <Card accent="from-violet-500 to-fuchsia-500">
+              <h3 className="text-lg font-semibold text-slate-900">AI Operations</h3>
+              <p className="mt-2 text-sm text-slate-500">Analyst and admin roles can monitor model reasoning, confidence, and threat distribution.</p>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 p-5 text-white shadow-lg shadow-violet-500/20">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">AI-ready cases</p>
+                  <p className="mt-3 text-3xl font-semibold">
+                    <AnimatedNumber value={(overview.cases || []).filter((item) => item.status !== "closed").length} />
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-violet-100 bg-white/80 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">Threat pressure</p>
+                  <p className="mt-3 text-3xl font-semibold text-slate-900">
+                    <AnimatedNumber value={liveAlerts.filter((item) => ["high", "critical"].includes(item.severity)).length} />
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </ScrollReveal>
+        ) : null}
       </section>
     </PageShell>
   );

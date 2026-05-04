@@ -9,7 +9,7 @@ const {
   assignCase,
   deleteCase,
 } = require("../controllers/caseController");
-const { authorizeRoles } = require("../middleware/roleMiddleware");
+const { requireRole } = require("../middleware/roleMiddleware");
 const { handleValidationErrors } = require("../middleware/validationMiddleware");
 
 const router = express.Router();
@@ -53,18 +53,18 @@ const assignCaseValidation = [
 
 const caseIdValidation = [objectIdValidator("id")];
 
-router.post("/", createCaseValidation, handleValidationErrors, createCase);
-router.get("/", listCasesValidation, handleValidationErrors, getAllCases);
-router.get("/:id", caseIdValidation, handleValidationErrors, getSingleCase);
-router.put("/:id", updateCaseValidation, handleValidationErrors, updateCase);
-router.patch("/:id/status", updateStatusValidation, handleValidationErrors, updateCaseStatus);
+router.post("/", requireRole("ADMIN", "INVESTIGATOR"), createCaseValidation, handleValidationErrors, createCase);
+router.get("/", requireRole("ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"), listCasesValidation, handleValidationErrors, getAllCases);
+router.get("/:id", requireRole("ADMIN", "INVESTIGATOR", "ANALYST", "VIEWER"), caseIdValidation, handleValidationErrors, getSingleCase);
+router.put("/:id", requireRole("ADMIN", "INVESTIGATOR"), updateCaseValidation, handleValidationErrors, updateCase);
+router.patch("/:id/status", requireRole("ADMIN", "INVESTIGATOR"), updateStatusValidation, handleValidationErrors, updateCaseStatus);
 router.patch(
   "/:id/assign",
-  authorizeRoles("Admin"),
+  requireRole("ADMIN"),
   assignCaseValidation,
   handleValidationErrors,
   assignCase,
 );
-router.delete("/:id", authorizeRoles("Admin"), caseIdValidation, handleValidationErrors, deleteCase);
+router.delete("/:id", requireRole("ADMIN"), caseIdValidation, handleValidationErrors, deleteCase);
 
 module.exports = router;
