@@ -20,7 +20,9 @@ COPY ai-service/requirements.txt ./ai-service/
 
 RUN cd client && npm install
 RUN cd server && npm install
-RUN pip3 install --no-cache-dir -r ai-service/requirements.txt
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+RUN pip install --no-cache-dir -r ai-service/requirements.txt
 
 COPY . .
 
