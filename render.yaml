@@ -20,7 +20,7 @@ services:
         sync: false
       - key: AI_SERVICE_HOSTPORT
         fromService:
-          type: private_service
+          type: pserv
           name: forensics-ai
           property: hostport
       - key: BLOCKCHAIN_RPC_URL
@@ -40,7 +40,7 @@ services:
       mountPath: /opt/render/project/src/uploads-data
       sizeGB: 1
 
-  - type: private_service
+  - type: pserv
     name: forensics-ai
     runtime: python
     rootDir: ai-service
@@ -53,11 +53,16 @@ services:
       - key: FLASK_DEBUG
         value: "false"
 
-  - type: static_site
+  - type: web
     name: forensics-client
+    runtime: static
     rootDir: client
     buildCommand: npm install && npm run build
-    publishPath: dist
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
         sync: false
