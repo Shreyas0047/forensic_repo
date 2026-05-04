@@ -3,8 +3,8 @@ import { cn } from "../../utils/cn";
 
 const variants = {
   primary: "bg-slate-900 text-white hover:bg-slate-800",
-  secondary: "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-50",
-  subtle: "bg-slate-100 text-slate-700 hover:bg-slate-200",
+  secondary: "bg-white/70 text-slate-700 border border-white/50 hover:border-slate-300 hover:bg-white backdrop-blur-xl",
+  subtle: "bg-slate-100/80 text-slate-700 hover:bg-slate-200",
 };
 
 export default function Button({ className, variant = "primary", children, ...props }) {

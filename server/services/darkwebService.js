@@ -4,6 +4,8 @@ const Case = require("../models/Case");
 const EventLog = require("../models/EventLog");
 const AppError = require("../utils/AppError");
 const { createAlert, getAlerts } = require("./alertService");
+const { calculateRiskScore } = require("./riskEngine");
+const { classifyThreat } = require("./threatClassifier");
 
 const datasetPath = path.resolve(__dirname, "..", "data", "darkwebData.json");
 
@@ -47,12 +49,6 @@ function extractThreatSignals(content) {
   };
 }
 
-function severityFromRisk(riskScore) {
-  if (riskScore >= 70) return "high";
-  if (riskScore >= 40) return "medium";
-  return "low";
-}
-
 async function findRelatedCase(post) {
   const cases = await Case.find({ isDeleted: false }).select("title description").lean();
   const normalizedContent = preprocessContent(post.content);
@@ -94,16 +90,30 @@ async function analyzeDarkwebDataset(user) {
     }
 
     const relatedCase = await findRelatedCase(post);
-    const severity = severityFromRisk(threat.riskScore);
-    const message = buildThreatMessage(threat, relatedCase);
+    const classification = classifyThreat({
+      threatsDetected: threat.detectedKeywords,
+      darkWebFlags: threat.detectedKeywords,
+      content: post.content,
+    });
+    const risk = calculateRiskScore({
+      aiRiskScore: threat.riskScore,
+      threatCount: threat.detectedKeywords.length,
+      anomalyFlags: 0,
+      darkWebFlags: 1,
+    });
+    const severity = risk.severity;
+    const message = `${buildThreatMessage(threat, relatedCase)} (${classification.threatType})`;
 
     const finding = {
       id: post.id,
       content: post.content,
       timestamp: post.timestamp,
-      riskScore: threat.riskScore,
+      riskScore: risk.finalRiskScore,
       detectedKeywords: threat.detectedKeywords,
       severity,
+      threatType: classification.threatType,
+      confidenceScore: classification.confidenceScore,
+      reasoning: classification.reasoning,
       relatedCase: relatedCase?._id || null,
     };
 
@@ -114,22 +124,30 @@ async function analyzeDarkwebDataset(user) {
       entityType: relatedCase ? "Case" : "User",
       entityId: relatedCase?._id || user.userId || user._id,
       performedBy: user.userId || user._id,
+      threatType: classification.threatType,
+      severity,
       metadata: {
         postId: post.id,
-        riskScore: threat.riskScore,
+        riskScore: risk.finalRiskScore,
         detectedKeywords: threat.detectedKeywords,
+        threatType: classification.threatType,
+        confidenceScore: classification.confidenceScore,
+        reasoning: classification.reasoning,
       },
     });
 
-    if (severity === "high") {
+    if (severity === "high" || severity === "critical") {
       await createAlert(
         message,
         severity,
         relatedCase?._id || null,
         {
           postId: post.id,
-          riskScore: threat.riskScore,
+          riskScore: risk.finalRiskScore,
           detectedKeywords: threat.detectedKeywords,
+          threatType: classification.threatType,
+          confidenceScore: classification.confidenceScore,
+          reasoning: classification.reasoning,
           content: post.content,
         },
         user.userId || user._id,
@@ -149,7 +167,7 @@ async function getAllAlerts() {
 }
 
 async function getHighSeverityAlerts() {
-  return getAlerts({ source: "darkweb", severity: "high" });
+  return getAlerts({ source: "darkweb", severity: { $in: ["high", "critical"] } });
 }
 
 module.exports = {

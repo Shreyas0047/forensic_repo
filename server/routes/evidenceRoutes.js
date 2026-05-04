@@ -13,10 +13,11 @@ const {
 const { authorizeRoles } = require("../middleware/roleMiddleware");
 const { handleValidationErrors } = require("../middleware/validationMiddleware");
 const AppError = require("../utils/AppError");
+const { ensureUploadsDirectory } = require("../utils/storagePaths");
 
 const router = express.Router();
 
-const uploadsDirectory = path.resolve(__dirname, "..", "uploads");
+const uploadsDirectory = ensureUploadsDirectory();
 const allowedMimeTypes = new Set(["image/png", "image/jpeg", "text/plain", "application/json"]);
 
 const storage = multer.diskStorage({

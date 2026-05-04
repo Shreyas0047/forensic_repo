@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: forensics-api
+    runtime: node
+    rootDir: server
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: CLIENT_URL
+        sync: false
+      - key: AI_SERVICE_HOSTPORT
+        fromService:
+          type: private_service
+          name: forensics-ai
+          property: hostport
+      - key: BLOCKCHAIN_RPC_URL
+        sync: false
+      - key: BLOCKCHAIN_NETWORK
+        value: CustomEVM
+      - key: ETH_ACCOUNT
+        sync: false
+      - key: BLOCKCHAIN_PRIVATE_KEY
+        sync: false
+      - key: EVIDENCE_CONTRACT_ADDRESS
+        sync: false
+      - key: EVIDENCE_UPLOAD_DIR
+        value: /opt/render/project/src/uploads-data
+    disk:
+      name: evidence-storage
+      mountPath: /opt/render/project/src/uploads-data
+      sizeGB: 1
+
+  - type: private_service
+    name: forensics-ai
+    runtime: python
+    rootDir: ai-service
+    plan: starter
+    buildCommand: pip install -r requirements.txt && python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True); nltk.download('vader_lexicon', quiet=True)"
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: FLASK_DEBUG
+        value: "false"
+
+  - type: static_site
+    name: forensics-client
+    rootDir: client
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false

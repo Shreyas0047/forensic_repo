@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const path = require("path");
 const authRoutes = require("./routes/authRoutes");
 const caseRoutes = require("./routes/caseRoutes");
 const evidenceRoutes = require("./routes/evidenceRoutes");
@@ -14,6 +13,7 @@ const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
 const { sanitizeRequest } = require("./middleware/validationMiddleware");
 const { authenticateUser } = require("./middleware/authMiddleware");
+const { ensureUploadsDirectory } = require("./utils/storagePaths");
 
 const app = express();
 
@@ -28,7 +28,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(sanitizeRequest);
 app.use(requestLogger);
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(ensureUploadsDirectory()));
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({

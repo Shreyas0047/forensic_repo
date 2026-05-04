@@ -5,7 +5,7 @@ const BlockchainRecord = require("../models/BlockchainRecord");
 const ChainOfCustody = require("../models/ChainOfCustody");
 const EventLog = require("../models/EventLog");
 const AppError = require("../utils/AppError");
-const { web3, getEvidenceContract } = require("../blockchain/web3");
+const { getEvidenceContract, resolveSenderAddress } = require("../blockchain/web3");
 
 function ensureObjectId(value, fieldName) {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -41,13 +41,24 @@ async function getAccessibleEvidence(evidenceId, user) {
 }
 
 async function addCustodyVerification(evidenceId, performedBy, notes) {
-  await ChainOfCustody.create({
+  return ChainOfCustody.create({
     evidenceId,
     action: "verify",
     performedBy,
     timestamp: new Date(),
     notes,
   });
+}
+
+function buildVerificationProof({ evidence, receipt = null, blockchainHash = null, custodyId = null }) {
+  return [
+    String(evidence._id),
+    evidence.hash,
+    receipt?.transactionHash || "",
+    receipt?.blockNumber ? String(receipt.blockNumber) : "",
+    blockchainHash || "",
+    custodyId ? String(custodyId) : "",
+  ].join(":");
 }
 
 async function addBlockchainEvent(eventType, evidenceId, performedBy, metadata = {}) {
@@ -71,11 +82,11 @@ function normalizeHashFromChain(hash) {
 async function storeEvidenceOnBlockchain(evidenceId, user) {
   const { evidence } = await getAccessibleEvidence(evidenceId, user);
   const contract = getEvidenceContract();
-  const accounts = await web3.eth.getAccounts();
-  const sender = process.env.ETH_ACCOUNT || accounts[0];
+  const sender = await resolveSenderAddress();
+  const network = process.env.BLOCKCHAIN_NETWORK || "Ganache";
 
   if (!sender) {
-    throw new AppError("No Ganache account available for blockchain transaction.", 500);
+    throw new AppError("No blockchain account available for transaction signing.", 500);
   }
 
   let receipt;
@@ -87,6 +98,12 @@ async function storeEvidenceOnBlockchain(evidenceId, user) {
     throw new AppError("Failed to store evidence on blockchain.", 502, { reason: error.message });
   }
 
+  const custodyRecord = await addCustodyVerification(
+    evidence._id,
+    user.userId || user._id,
+    `Evidence hash stored on ${network} blockchain.`,
+  );
+
   const blockchainRecord = await BlockchainRecord.findOneAndUpdate(
     { evidenceId: evidence._id },
     {
@@ -94,8 +111,10 @@ async function storeEvidenceOnBlockchain(evidenceId, user) {
       hash: evidence.hash,
       transactionId: receipt.transactionHash,
       blockNumber: Number(receipt.blockNumber),
-      network: "Ganache",
+      network,
       verified: true,
+      chainOfCustodyId: custodyRecord._id,
+      verificationProof: buildVerificationProof({ evidence, receipt, custodyId: custodyRecord._id }),
     },
     {
       new: true,
@@ -105,16 +124,11 @@ async function storeEvidenceOnBlockchain(evidenceId, user) {
     },
   );
 
-  await addCustodyVerification(
-    evidence._id,
-    user.userId || user._id,
-    "Evidence hash stored on Ganache blockchain.",
-  );
-
   await addBlockchainEvent("BLOCKCHAIN_STORED", evidence._id, user.userId || user._id, {
     transactionId: receipt.transactionHash,
     blockNumber: Number(receipt.blockNumber),
-    network: "Ganache",
+    network,
+    verificationProof: blockchainRecord.verificationProof,
   });
 
   return blockchainRecord;
@@ -143,17 +157,26 @@ async function verifyEvidenceOnBlockchain(evidenceId, user) {
   blockchainRecord.verified = verified;
   await blockchainRecord.save();
 
-  await addCustodyVerification(
+  const custodyRecord = await addCustodyVerification(
     evidence._id,
     user.userId || user._id,
     verified ? "Blockchain integrity verification succeeded." : "Blockchain integrity verification failed.",
   );
+
+  blockchainRecord.chainOfCustodyId = custodyRecord._id;
+  blockchainRecord.verificationProof = buildVerificationProof({
+    evidence,
+    blockchainHash,
+    custodyId: custodyRecord._id,
+  });
+  await blockchainRecord.save();
 
   await addBlockchainEvent("BLOCKCHAIN_VERIFIED", evidence._id, user.userId || user._id, {
     verified,
     blockchainHash,
     databaseHash: evidence.hash,
     transactionId: blockchainRecord.transactionId,
+    verificationProof: blockchainRecord.verificationProof,
   });
 
   return {
@@ -165,10 +188,35 @@ async function verifyEvidenceOnBlockchain(evidenceId, user) {
     blockNumber: blockchainRecord.blockNumber,
     network: blockchainRecord.network,
     timestamp: Number(onChainRecord[1]),
+    chainOfCustodyId: blockchainRecord.chainOfCustodyId,
+    verificationProof: blockchainRecord.verificationProof,
+  };
+}
+
+async function getBlockchainProof(evidenceId, user) {
+  const { evidence } = await getAccessibleEvidence(evidenceId, user);
+  const blockchainRecord = await BlockchainRecord.findOne({ evidenceId: evidence._id })
+    .populate("chainOfCustodyId", "action performedBy timestamp notes")
+    .lean();
+
+  if (!blockchainRecord) {
+    throw new AppError("Blockchain record not found for this evidence.", 404);
+  }
+
+  return {
+    evidenceId: evidence._id,
+    hash: evidence.hash,
+    transactionId: blockchainRecord.transactionId,
+    blockNumber: blockchainRecord.blockNumber,
+    network: blockchainRecord.network,
+    verified: blockchainRecord.verified,
+    chainOfCustody: blockchainRecord.chainOfCustodyId,
+    verificationProof: blockchainRecord.verificationProof,
   };
 }
 
 module.exports = {
   storeEvidenceOnBlockchain,
   verifyEvidenceOnBlockchain,
+  getBlockchainProof,
 };

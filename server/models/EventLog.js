@@ -29,6 +29,17 @@ const eventLogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    threatType: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    severity: {
+      type: String,
+      enum: ["low", "medium", "high", "critical", null],
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

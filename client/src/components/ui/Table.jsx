@@ -12,7 +12,7 @@ export default function Table({ columns, rows, renderRow }) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">{rows.map(renderRow)}</tbody>
+          <tbody className="divide-y divide-slate-100 [&_tr]:transition [&_tr]:duration-300 [&_tr:hover]:bg-white/70">{rows.map(renderRow)}</tbody>
         </table>
       </div>
     </div>

@@ -7,6 +7,8 @@ const ChainOfCustody = require("../models/ChainOfCustody");
 const EventLog = require("../models/EventLog");
 const AppError = require("../utils/AppError");
 const { analyzeText, analyzeLog, analyzeImage } = require("../utils/aiClient");
+const { calculateRiskScore } = require("./riskEngine");
+const { classifyThreat } = require("./threatClassifier");
 
 function ensureObjectId(value, fieldName) {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -77,6 +79,8 @@ async function logAnalysisEvent(evidenceId, performedBy, metadata) {
     entityType: "Evidence",
     entityId: evidenceId,
     performedBy,
+    threatType: metadata.threatType,
+    severity: metadata.severity,
     metadata,
   });
 }
@@ -115,14 +119,40 @@ async function runEvidenceAnalysis(evidenceId, user) {
     throw new AppError("AI service is unavailable.", 503, { reason: error.message });
   }
 
+  const threatsDetected = aiResult.threatsDetected || (aiResult.anomaliesDetected ? ["anomalous_log_activity"] : []);
+  const anomalyFlags = aiResult.anomaliesDetected || aiResult.tampered ? 1 : 0;
+  const classification = classifyThreat({
+    threatsDetected,
+    logAnomalies: aiResult.anomalousEntries || [],
+    content: `${aiResult.explanation || ""} ${evidence.fileName || ""}`,
+    explanation: aiResult.explanation,
+  });
+  const risk = calculateRiskScore({
+    aiRiskScore: aiResult.riskScore ?? (aiResult.tampered ? 75 : 15),
+    threatCount: threatsDetected.length,
+    anomalyFlags,
+    darkWebFlags: 0,
+  });
+
   const reportPayload = {
     evidenceId: evidence._id,
     caseId: caseRecord._id,
     riskScore: aiResult.riskScore ?? (aiResult.tampered ? 75 : 15),
-    threatsDetected: aiResult.threatsDetected || (aiResult.anomaliesDetected ? ["anomalous_log_activity"] : []),
+    finalRiskScore: risk.finalRiskScore,
+    severity: risk.severity,
+    threatType: classification.threatType,
+    confidenceScore: classification.confidenceScore,
+    threatsDetected,
     aiModelUsed,
-    explanation: aiResult.explanation || "AI analysis completed.",
-    rawOutput: aiResult,
+    explanation: `${aiResult.explanation || "AI analysis completed."} ${classification.reasoning}`,
+    rawOutput: {
+      ...aiResult,
+      finalRiskScore: risk.finalRiskScore,
+      severity: risk.severity,
+      threatType: classification.threatType,
+      confidenceScore: classification.confidenceScore,
+      classificationReasoning: classification.reasoning,
+    },
   };
 
   const report = await AnalysisReport.create(reportPayload);
@@ -137,6 +167,10 @@ async function runEvidenceAnalysis(evidenceId, user) {
     caseId: caseRecord._id,
     reportId: report._id,
     riskScore: report.riskScore,
+    finalRiskScore: report.finalRiskScore,
+    severity: report.severity,
+    threatType: report.threatType,
+    confidenceScore: report.confidenceScore,
     aiModelUsed,
   });
 

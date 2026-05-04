@@ -8,8 +8,9 @@ const BlockchainRecord = require("../models/BlockchainRecord");
 const EventLog = require("../models/EventLog");
 const AppError = require("../utils/AppError");
 const { generateFileHash } = require("../utils/hashUtils");
+const { uploadsRoot } = require("../utils/storagePaths");
 
-const UPLOADS_ROOT = path.resolve(__dirname, "..", "uploads");
+const UPLOADS_ROOT = uploadsRoot;
 
 function ensureObjectId(value, fieldName) {
   if (!mongoose.Types.ObjectId.isValid(value)) {

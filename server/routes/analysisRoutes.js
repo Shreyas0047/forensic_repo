@@ -17,8 +17,8 @@ const caseIdValidation = [
   param("caseId").isMongoId().withMessage("caseId must be a valid MongoDB ObjectId."),
 ];
 
+router.get("/case/:caseId", caseIdValidation, handleValidationErrors, getCaseAnalysisReports);
 router.post("/:evidenceId", evidenceIdValidation, handleValidationErrors, analyzeEvidence);
 router.get("/:evidenceId", evidenceIdValidation, handleValidationErrors, getAnalysisReport);
-router.get("/case/:caseId", caseIdValidation, handleValidationErrors, getCaseAnalysisReports);
 
 module.exports = router;

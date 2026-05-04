@@ -31,12 +31,23 @@ const blockchainRecordSchema = new mongoose.Schema(
       type: String,
       required: [true, "Blockchain network is required."],
       trim: true,
-      enum: ["Ganache", "Ethereum"],
+      enum: ["Ganache", "Ethereum", "Sepolia", "Amoy", "CustomEVM"],
     },
     verified: {
       type: Boolean,
       default: false,
       index: true,
+    },
+    chainOfCustodyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ChainOfCustody",
+      default: null,
+      index: true,
+    },
+    verificationProof: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
   {

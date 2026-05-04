@@ -43,13 +43,25 @@ async function compileContract() {
 
 async function deploy() {
   const { abi, bytecode } = await compileContract();
-  const providerUrl = process.env.GANACHE_URL || "http://127.0.0.1:7545";
+  const providerUrl =
+    process.env.BLOCKCHAIN_RPC_URL ||
+    process.env.GANACHE_URL ||
+    "http://127.0.0.1:7545";
   const web3 = new Web3(providerUrl);
-  const accounts = await web3.eth.getAccounts();
-  const deployerAccount = process.env.ETH_ACCOUNT || accounts[0];
+  let deployerAccount = process.env.ETH_ACCOUNT || null;
+
+  if (process.env.BLOCKCHAIN_PRIVATE_KEY) {
+    const signer = web3.eth.accounts.wallet.add(process.env.BLOCKCHAIN_PRIVATE_KEY);
+    deployerAccount = deployerAccount || signer.address;
+  }
 
   if (!deployerAccount) {
-    throw new Error("No Ganache deployer account available.");
+    const accounts = await web3.eth.getAccounts();
+    deployerAccount = accounts[0];
+  }
+
+  if (!deployerAccount) {
+    throw new Error("No blockchain deployer account available.");
   }
 
   const contract = new web3.eth.Contract(abi);
@@ -64,7 +76,8 @@ async function deploy() {
       {
         abi,
         address: deployedContract.options.address,
-        network: "Ganache",
+        network: process.env.BLOCKCHAIN_NETWORK || "Ganache",
+        rpcUrl: providerUrl,
       },
       null,
       2,

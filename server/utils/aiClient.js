@@ -2,8 +2,20 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 
+function resolveAiBaseUrl() {
+  if (process.env.AI_SERVICE_URL) {
+    return process.env.AI_SERVICE_URL;
+  }
+
+  if (process.env.AI_SERVICE_HOSTPORT) {
+    return `http://${process.env.AI_SERVICE_HOSTPORT}`;
+  }
+
+  return "http://127.0.0.1:5001";
+}
+
 const aiHttpClient = axios.create({
-  baseURL: process.env.AI_SERVICE_URL || "http://localhost:5000",
+  baseURL: resolveAiBaseUrl(),
   timeout: 30000,
 });
 

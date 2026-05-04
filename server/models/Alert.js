@@ -10,9 +10,21 @@ const alertSchema = new mongoose.Schema(
     },
     severity: {
       type: String,
-      enum: ["low", "medium", "high"],
+      enum: ["low", "medium", "high", "critical"],
       required: [true, "Alert severity is required."],
       index: true,
+    },
+    threatType: {
+      type: String,
+      default: "Suspicious Activity",
+      trim: true,
+      index: true,
+    },
+    confidenceScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 1,
     },
     relatedCase: {
       type: mongoose.Schema.Types.ObjectId,
@@ -35,6 +47,7 @@ const alertSchema = new mongoose.Schema(
 );
 
 alertSchema.index({ severity: 1, createdAt: -1 });
+alertSchema.index({ threatType: 1, severity: 1 });
 alertSchema.index({ source: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Alert", alertSchema);

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/layout/Sidebar";
 import TopNavbar from "../components/layout/TopNavbar";
+import NotificationToasts from "../components/layout/NotificationToasts";
 
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -17,6 +18,7 @@ export default function AppLayout() {
           </main>
         </div>
       </div>
+      <NotificationToasts />
     </div>
   );
 }
